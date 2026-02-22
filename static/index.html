@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Document Analysis & Interaction System</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff4d4f; /* Reddish color from the screenshot */
+            --secondary-color: #6c757d;
+            --sidebar-bg: #f5f7fa;
+            --main-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #e8e8e8;
+            --sidebar-width: 320px;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--main-bg); 
+            height: 100vh;
+            display: flex;
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .container { 
+            flex: 1;
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            background-color: var(--sidebar-bg); 
+            border-right: 1px solid var(--border-color); 
+            padding: 24px; 
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: #1f1f1f;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            background: #fff;
+            border: 1px dashed #d9d9d9;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover { border-color: var(--primary-color); }
+        .upload-area h4 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }
+        .upload-area p { margin: 0 0 16px 0; font-size: 12px; color: #8c8c8c; }
+        .upload-btn {
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+        /* File List */
+        .file-list-section h4 {
+            font-size: 14px;
+            color: #1f1f1f;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .file-item:hover { border-color: #d9d9d9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        
+        .file-icon { font-size: 20px; margin-right: 12px; color: #1890ff; }
+        .file-info { flex: 1; overflow: hidden; }
+        .file-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .file-size { font-size: 12px; color: #8c8c8c; }
+        .file-remove { 
+            cursor: pointer; 
+            color: #bfbfbf; 
+            padding: 4px;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .file-remove:hover { color: #ff4d4f; }
+
+        /* Action Buttons in Sidebar */
+        .sidebar-actions {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .sidebar-btn-primary {
+            background: var(--primary-color);
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .sidebar-btn-primary:hover { opacity: 0.9; }
+
+        .sidebar-btn-text {
+            background: none;
+            border: none;
+            color: #8c8c8c;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 8px;
+            text-align: center;
+        }
+        .sidebar-btn-text:hover { color: var(--text-color); }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            position: relative;
+        }
+
+        .main-header {
+            padding: 40px 60px 20px;
+            background: #fff;
+        }
+
+        .main-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .main-subtitle {
+            font-size: 14px;
+            color: #8c8c8c;
+            margin-bottom: 30px;
+        }
+
+        /* Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 32px;
+            /* border-bottom: 1px solid var(--border-color); */
+            margin-bottom: 20px;
+        }
+        
+        .nav-item {
+            padding: 12px 0;
+            font-size: 16px;
+            color: #595959;
+            cursor: pointer;
+            position: relative;
+            font-weight: 500;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+        .nav-item.active::after {
+            /* content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color); */
+            display: none;
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .chat-input-wrapper {
+            padding: 20px 0 40px;
+            background: #fff;
+        }
+
+        .chat-input-box {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            padding: 8px 0;
+            outline: none;
+        }
+
+        .send-btn {
+            background: none;
+            border: none;
+            color: #bfbfbf;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .send-btn:hover { color: var(--primary-color); }
+        .send-btn.active { color: var(--primary-color); }
+
+        /* Message Styles */
+        .message {
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .message.user .message-content {
+            background: #e6f7ff;
+            padding: 12px 20px;
+            border-radius: 12px 12px 2px 12px;
+            max-width: 80%;
+        }
+
+        .message.bot {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .bot-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .message.bot .message-content {
+            flex: 1;
+            max-width: 100%;
+        }
+
+        /* Auth Styles - Tech Theme */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #021131 0%, #062858 100%);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+        }
+        
+        /* Optional: Add a subtle grid or decorative background if possible, 
+           but linear gradient is a good start for "tech" feel */
+        .auth-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 78, 146, 0.4) 0%, transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(0, 78, 146, 0.4) 0%, transparent 20%);
+            pointer-events: none;
+        }
+
+        .auth-box {
+            width: 400px;
+            padding: 40px;
+            background: rgba(13, 33, 66, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 168, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            text-align: center;
+            position: relative;
+        }
+        
+        /* Corner decorations */
+        .auth-box::after {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px;
+            width: 20px; height: 20px;
+            border-top: 2px solid #00a8ff;
+            border-left: 2px solid #00a8ff;
+        }
+        .auth-box::before {
+            content: '';
+            position: absolute;
+            bottom: -2px; right: -2px;
+            width: 20px; height: 20px;
+            border-bottom: 2px solid #00a8ff;
+            border-right: 2px solid #00a8ff;
+        }
+
+        .auth-title {
+            color: #fff;
+            font-size: 20px;
+            margin-bottom: 40px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            line-height: 1.4;
+        }
+
+        .auth-label {
+            display: none; /* Hide labels as per design (placeholders usually enough or inside) - screenshot has labels above inputs though? Screenshot has '账号' inside or above. Let's look at Figure 1. It has '账号' text inside the blue box but aligned left? No, it looks like placeholders or text above. Actually, it looks like "账号" is text above the input line, or the input has a label. I'll stick to placeholders or simple labels. */
+        }
+
+        .auth-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(0, 50, 100, 0.5);
+            border: 1px solid rgba(0, 168, 255, 0.3);
+            color: #fff;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 2px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .auth-input:focus {
+            border-color: #00a8ff;
+            background: rgba(0, 50, 100, 0.7);
+            box-shadow: 0 0 10px rgba(0, 168, 255, 0.2);
+        }
+        .auth-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .auth-options {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            margin-bottom: 30px;
+        }
+        .auth-options label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .auth-options input[type="checkbox"] {
+            margin-right: 6px;
+        }
+        .auth-options a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+        }
+        .auth-options a:hover {
+            color: #fff;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #0066cc, #00a8ff);
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            letter-spacing: 4px;
+        }
+        .auth-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 15px rgba(0, 168, 255, 0.4);
+        }
+        
+        .hidden { display: none !important; }
+
+        /* Helper classes */
+        .text-center { text-align: center; }
+        .mt-20 { margin-top: 20px; }
+        
+        /* Markdown overrides */
+        .message-content h1, .message-content h2 { font-size: 18px; margin-top: 20px; }
+        .message-content p { margin: 8px 0; }
+    </style>
+</head>
+<body>
+
+<!-- Auth Layer -->
+<div id="auth-layer" class="auth-overlay">
+    <div class="auth-box">
+        <h2 class="auth-title">Intelligent Document Analysis<br>& Interaction System</h2>
+        
+        <!-- Login Form -->
+        <div id="login-form">
+            <div class="form-group">
+                <input type="text" id="login-username" placeholder="Username" class="auth-input">
+            </div>
+            <div class="form-group">
+                <input type="password" id="login-password" placeholder="Password" class="auth-input">
+            </div>
+            <div class="auth-options">
+                <label><input type="checkbox"> Remember Me</label>
+                <a href="#">Forgot Password?</a>
+            </div>
+            <button onclick="login()" class="auth-btn">Login</button>
+            <p class="mt-20" style="font-size: 14px; color: rgba(255,255,255,0.5);">
+                No account yet? <a href="#" onclick="showRegister()" style="color: #00a8ff;">Register Now</a>
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="hidden">
+            <div class="form-group">
+                <input type="text" id="reg-username" placeholder="Username" class="auth-input">
+            </div>
+            <div class="form-group">
+                <input type="password" id="reg-password" placeholder="Password" class="auth-input">
+            </div>
+             <div class="form-group">
+                <input type="email" id="reg-email" placeholder="Email (Optional)" class="auth-input">
+            </div>
+            <button onclick="register()" class="auth-btn">Register</button>
+            <p class="mt-20" style="font-size: 14px; color: rgba(255,255,255,0.5);">
+                Already have an account? <a href="#" onclick="showLogin()" style="color: #00a8ff;">Login Now</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Application -->
+<div id="app-container" class="container hidden">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>📚 Document Repository</h2>
+            <p style="font-size: 12px; color: #8c8c8c; margin-top: 4px;">Upload: pdf/txt/docx...</p>
+        </div>
+
+        <!-- Drag & Drop Area -->
+        <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-upload').click()">
+            <input type="file" id="file-upload" multiple style="display: none" onchange="uploadFile()">
+            <h4>Drop files here</h4>
+            <p>Limit 200MB • PDF, TXT, DOCX</p>
+            <button class="upload-btn">Browse Files</button>
+        </div>
+        <div id="upload-status" style="font-size: 12px; color: var(--primary-color); text-align: center; margin-bottom: 15px; min-height: 18px;"></div>
+
+        <!-- Active Files -->
+        <div class="file-list-section">
+            <h4>Active Documents</h4>
+            <div id="file-list">
+                <!-- File items will be injected here -->
+            </div>
+        </div>
+
+        <div class="sidebar-actions">
+            <button class="sidebar-btn-primary" onclick="analyzeSelected('summary')" style="background-color: #faad14;">
+                <span>📝</span> Generate Summary
+            </button>
+            <button class="sidebar-btn-primary" onclick="analyzeSelected('cross_analysis')" style="background-color: #722ed1;">
+                <span>📊</span> Cross Analysis
+            </button>
+            <button class="sidebar-btn-text" onclick="clearFiles()">Clear All Documents</button>
+            
+            <div style="border-top: 1px solid var(--border-color); margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span id="username-display" style="font-size: 14px; font-weight: 500;">User</span>
+                <div>
+                    <span onclick="clearChatHistory()" style="cursor: pointer; margin-right: 15px; font-size: 12px; color: #666; display: inline-flex; align-items: center; gap: 4px;" title="Clear History">
+                        🗑️ Clear History
+                    </span>
+                    <span onclick="logout()" style="cursor: pointer; font-size: 12px; color: #666; display: inline-flex; align-items: center; gap: 4px;" title="Logout">
+                        🚪 Logout
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="main-header">
+            <h1 class="main-title">🎓 Multimodal Academic Document Analysis System</h1>
+            <p class="main-subtitle">Upload documents to start cross-document Q&A and analysis...</p>
+            
+
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-history" id="chat-box">
+                <!-- Initial Welcome Message -->
+                <div class="message bot">
+                    <div class="bot-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>Hello! I am your intelligent document assistant. Upload documents to start, or ask a question directly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-wrapper">
+                <div class="chat-input-box">
+                    <input type="text" id="user-input" class="chat-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://localhost:8000/api";
+    let currentUser = null;
+    let chatHistory = [];
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+        initDragAndDrop();
+        checkLoginStatus();
+        
+        // Input focus effect
+        const chatInput = document.getElementById('user-input');
+        const sendBtn = document.querySelector('.send-btn');
+        
+        chatInput.addEventListener('input', () => {
+            if (chatInput.value.trim().length > 0) {
+                sendBtn.classList.add('active');
+            } else {
+                sendBtn.classList.remove('active');
+            }
+        });
+
+        // Paste event listener for images (Removed as requested)
+        // chatInput.addEventListener('paste', (e) => { ... });
+    });
+
+    function checkLoginStatus() {
+        // Restore chat history
+        const savedHistory = localStorage.getItem('chatHistory');
+        if (savedHistory) {
+            try {
+                chatHistory = JSON.parse(savedHistory);
+                chatHistory.forEach(msg => {
+                    addMessage(msg.content, msg.role, false);
+                });
+            } catch(e) {
+                console.error("Failed to parse history", e);
+                localStorage.removeItem('chatHistory');
+            }
+        }
+
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            currentUser = savedUser;
+            document.getElementById('username-display').innerText = currentUser;
+            
+            document.getElementById('auth-layer').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            
+            loadFiles();
+        } else {
+            document.getElementById('auth-layer').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        }
+    }
+
+    // --- Auth Functions ---
+    function showRegister() {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.remove('hidden');
+    }
+
+    function showLogin() {
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('login-form').classList.remove('hidden');
+    }
+
+    async function register() {
+        const username = document.getElementById('reg-username').value;
+        const password = document.getElementById('reg-password').value;
+        const email = document.getElementById('reg-email').value;
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, email })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert('Registration successful, please login');
+                showLogin();
+            } else {
+                alert(data.detail || 'Registration failed');
+            }
+        } catch (error) {
+            alert('Network error');
+        }
+    }
+
+    async function login() {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                currentUser = data.username;
+                document.getElementById('username-display').innerText = currentUser;
+                
+                localStorage.setItem('currentUser', data.username);
+                if(data.preferred_output_format) {
+                    localStorage.setItem('preferred_output_format', data.preferred_output_format);
+                }
+
+                document.getElementById('auth-layer').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                loadFiles();
+            } else {
+                alert(data.detail || 'Login failed');
+            }
+        } catch (error) {
+            alert('Network error');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('chatHistory');
+        currentUser = null;
+        chatHistory = [];
+        
+        document.getElementById('app-container').classList.add('hidden');
+        document.getElementById('auth-layer').classList.remove('hidden');
+        document.getElementById('login-form').classList.remove('hidden');
+        
+        // Reset Chat
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = `
+            <div class="message bot">
+                <div class="bot-avatar">🤖</div>
+                <div class="message-content">
+                    <p>Hello! I am your intelligent document assistant. Upload documents to start, or ask a question directly.</p>
+                </div>
+            </div>`;
+    }
+
+    // --- File Management ---
+    function initDragAndDrop() {
+        const dropZone = document.getElementById('drop-zone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.style.borderColor = 'var(--primary-color)';
+            dropZone.style.backgroundColor = '#f0f5ff';
+        }
+
+        function unhighlight(e) {
+            dropZone.style.borderColor = '#d9d9d9';
+            dropZone.style.backgroundColor = '#fff';
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('file-upload').files = files;
+            uploadFile();
+        }
+    }
+
+    async function loadFiles() {
+        try {
+            const response = await fetch(`${API_URL}/files`);
+            const data = await response.json();
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            
+            data.files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                
+                // Determine icon based on extension
+                let icon = '📄';
+                if (file.endsWith('.pdf')) icon = '📕';
+                else if (file.endsWith('.docx') || file.endsWith('.doc')) icon = '📘';
+                else if (file.endsWith('.txt')) icon = '📝';
+                else if (file.match(/\.(jpg|jpeg|png)$/i)) icon = '🖼️';
+                
+                item.innerHTML = `
+                    <div class="file-icon">${icon}</div>
+                    <div class="file-info">
+                        <span class="file-name" title="${file}">${file}</span>
+                        <input type="checkbox" name="selected-files" value="${file}" style="display:none;" id="chk-${file}">
+                        <label for="chk-${file}" style="font-size:12px; color:var(--primary-color); cursor:pointer;">Select for Analysis</label>
+                    </div>
+                    <div class="file-remove" onclick="deleteFile('${file}')" title="Delete">×</div>
+                `;
+                
+                // Make the whole item clickable to toggle checkbox visual (simplified logic)
+                item.onclick = (e) => {
+                    if(e.target.className !== 'file-remove') {
+                        const chk = item.querySelector('input[type="checkbox"]');
+                        chk.checked = !chk.checked;
+                        item.style.borderColor = chk.checked ? 'var(--primary-color)' : 'var(--border-color)';
+                        item.style.backgroundColor = chk.checked ? '#e6f7ff' : '#fff';
+                    }
+                };
+                
+                fileList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Failed to load files', error);
+        }
+    }
+
+    async function uploadFile(filesOverride) {
+        let files;
+        if (filesOverride && filesOverride.length > 0) {
+            files = filesOverride;
+        } else {
+            const fileInput = document.getElementById('file-upload');
+            files = fileInput.files;
+        }
+        
+        if (!files || files.length === 0) return;
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+
+        const statusDiv = document.getElementById('upload-status');
+        statusDiv.innerText = 'Uploading...';
+        
+        // Clear file input so same file can be selected again if using browse
+        if (!filesOverride) {
+             document.getElementById('file-upload').value = '';
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                statusDiv.innerText = '';
+                loadFiles();
+                
+                let msg = "Uploaded documents:\n";
+                data.results.forEach(res => {
+                    msg += `- ${res.filename}: ${res.status === 'success' ? 'Success' : 'Failed'}\n`;
+                });
+                msg += "\nYou can ask questions directly, or choose to generate a summary or cross-document analysis.";
+                addMessage(msg, 'bot');
+            } else {
+                statusDiv.innerText = 'Upload failed';
+                statusDiv.style.color = 'red';
+            }
+        } catch (error) {
+            statusDiv.innerText = 'Network error';
+        }
+    }
+
+    async function deleteFile(filename) {
+        if(!confirm(`Are you sure you want to delete ${filename}?`)) return;
+        
+        try {
+            const response = await fetch(`${API_URL}/files/${filename}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Refresh list
+                loadFiles();
+                // Optionally add message
+                // addMessage(`文件 ${filename} 已删除`, 'bot');
+            } else {
+                alert(data.detail || 'Delete failed');
+            }
+        } catch (error) {
+            console.error('Delete error', error);
+            alert('Network error');
+        }
+    }
+
+    async function clearFiles() {
+        if (!confirm("Are you sure you want to clear all uploaded documents and the knowledge base?")) return;
+
+        try {
+            const response = await fetch(`${API_URL}/files`, { method: 'DELETE' });
+            if (response.ok) {
+                loadFiles();
+                addMessage('🗑️ All documents cleared.', 'bot');
+                chatHistory = [];
+                localStorage.removeItem('chatHistory');
+                document.getElementById('chat-box').innerHTML = `
+                    <div class="message bot">
+                        <div class="bot-avatar">🤖</div>
+                        <div class="message-content"><p>Hello! I am your intelligent document assistant. Upload documents to start, or ask a question directly.</p></div>
+                    </div>`;
+            }
+        } catch (error) {
+            alert('Clear failed');
+        }
+    }
+
+    // --- Chat & Analysis ---
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') sendMessage();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        input.value = '';
+
+        // Create a placeholder for bot message
+        const botMsgId = Date.now().toString();
+        
+        const chatBox = document.getElementById('chat-box');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message bot';
+        msgDiv.innerHTML = `
+            <div class="bot-avatar">🤖</div>
+            <div class="message-content" id="msg-${botMsgId}"></div>
+        `;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        const contentDiv = document.getElementById(`msg-${botMsgId}`);
+        let fullText = "";
+        let sources = [];
+
+        try {
+            const response = await fetch(`${API_URL}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    question: text,
+                    history: chatHistory 
+                })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                const lines = buffer.split('\n');
+                
+                // Keep the last part in buffer (it might be incomplete)
+                buffer = lines.pop(); 
+                
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        if (data.type === 'token') {
+                            fullText += data.content;
+                            if (typeof marked !== 'undefined') {
+                                contentDiv.innerHTML = marked.parse(fullText);
+                            } else {
+                                contentDiv.textContent = fullText;
+                            }
+                        } else if (data.type === 'sources') {
+                            sources = data.content;
+                        } else if (data.type === 'error') {
+                            fullText += "\nError: " + data.content;
+                            contentDiv.textContent = fullText;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing JSON chunk", e);
+                    }
+                }
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+            
+            // Append sources at the end
+            if (sources.length > 0) {
+                const sourceText = "\n\n**Sources:**\n" + sources.map(s => `- ${s.source} (Page ${s.page})`).join("\n");
+                fullText += sourceText;
+                if (typeof marked !== 'undefined') {
+                    contentDiv.innerHTML = marked.parse(fullText);
+                } else {
+                    contentDiv.textContent = fullText;
+                }
+            }
+            
+            // Add Export Button for long bot messages
+            if (fullText.length > 200 || fullText.includes('|')) {
+                const exportBtn = document.createElement('button');
+                exportBtn.innerText = '📊 Export Excel';
+                exportBtn.className = 'upload-btn';
+                exportBtn.style.marginTop = '10px';
+                exportBtn.style.fontSize = '12px';
+                exportBtn.onclick = () => exportToExcel(fullText);
+                contentDiv.appendChild(exportBtn);
+            }
+
+            // Save to history
+            chatHistory.push({ role: 'bot', content: fullText });
+            if (chatHistory.length > 20) chatHistory.shift();
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+
+        } catch (error) {
+            contentDiv.innerHTML += `<br><span style="color:red">Error: ${error.message}</span>`;
+        }
+    }
+
+    async function analyzeSelected(type) {
+        const checkboxes = document.querySelectorAll('input[name="selected-files"]:checked');
+        const filenames = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (selectedFiles.length === 0) {
+            alert('Please select at least one document.');
+            return;
+        }
+
+        const title = type === 'summary' ? 'Document Summary' : 'Cross-document Analysis';
+        addMessage(`Processing ${title}...`, 'bot');
+        
+        // Create result container
+        const botMsgId = Date.now().toString();
+        const chatBox = document.getElementById('chat-box');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message bot';
+        msgDiv.innerHTML = `
+            <div class="bot-avatar">🤖</div>
+            <div class="message-content" id="msg-${botMsgId}"></div>
+        `;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        const contentDiv = document.getElementById(`msg-${botMsgId}`);
+        let fullText = "";
+        
+        if (type === 'summary') {
+            fullText = "**文档摘要结果**：\n\n";
+        } else {
+            fullText = "**跨文档分析报告**：\n\n";
+        }
+        
+        if (typeof marked !== 'undefined') {
+            contentDiv.innerHTML = marked.parse(fullText);
+        } else {
+            contentDiv.textContent = fullText;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filenames, type })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                contentDiv.innerHTML = `<span style="color:red">Error: ${errorData.detail || 'Request failed'}</span>`;
+                return;
+            }
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); 
+                
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        
+                        if (type === 'cross_analysis') {
+                            if (data.type === 'token') {
+                                fullText += data.content;
+                            } else if (data.type === 'error') {
+                                fullText += `\n[Error: ${data.content}]\n`;
+                            }
+                        } else if (type === 'summary') {
+                            if (data.type === 'summary_start') {
+                                fullText += `📄 **${data.filename}**:\n`;
+                            } else if (data.type === 'token') {
+                                fullText += data.content;
+                            } else if (data.type === 'summary_end') {
+                                fullText += `\n\n---\n\n`;
+                            } else if (data.type === 'error') {
+                                fullText += `\n[Error: ${data.content}]\n`;
+                            }
+                        }
+                        
+                        if (typeof marked !== 'undefined') {
+                            contentDiv.innerHTML = marked.parse(fullText);
+                        } else {
+                            contentDiv.textContent = fullText;
+                        }
+                        
+                    } catch (e) {
+                        console.error("Error parsing JSON chunk", e);
+                    }
+                }
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+            
+             // Add Export Button
+            if (fullText.length > 200) {
+                const exportBtn = document.createElement('button');
+                exportBtn.innerText = '📊 Export Excel';
+                exportBtn.className = 'upload-btn';
+                exportBtn.style.marginTop = '10px';
+                exportBtn.style.fontSize = '12px';
+                exportBtn.onclick = () => exportToExcel(fullText);
+                contentDiv.appendChild(exportBtn);
+            }
+            
+            // Save to history
+            chatHistory.push({ role: 'bot', content: fullText });
+            if (chatHistory.length > 20) chatHistory.shift();
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+            
+        } catch (error) {
+            contentDiv.innerHTML += `<br><span style="color:red">Error: ${error.message}</span>`;
+        }
+    }
+
+    function addMessage(text, sender, save = true) {
+        const chatBox = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        
+        if (save) {
+            chatHistory.push({ role: sender, content: text });
+            if (chatHistory.length > 20) chatHistory.shift();
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+        
+        let contentHtml = '';
+        if (typeof marked !== 'undefined') {
+            try { contentHtml = marked.parse(text); } 
+            catch (e) { contentHtml = text; }
+        } else {
+            contentHtml = text;
+        }
+
+        if (sender === 'user') {
+            div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
+        } else {
+            div.innerHTML = `
+                <div class="bot-avatar">🤖</div>
+                <div class="message-content">${contentHtml}</div>
+            `;
+            
+            // Add Export Button for long bot messages
+            if (text.length > 200 || text.includes('|')) {
+                const exportBtn = document.createElement('button');
+                exportBtn.innerText = '📊 导出 Excel';
+                exportBtn.className = 'upload-btn'; // reuse style
+                exportBtn.style.marginTop = '10px';
+                exportBtn.style.fontSize = '12px';
+                exportBtn.onclick = () => exportToExcel(text);
+                div.querySelector('.message-content').appendChild(exportBtn);
+            }
+        }
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    
+    async function exportToExcel(content) {
+         try {
+            const response = await fetch(`${API_URL}/export`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content, type: 'excel' })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.download = data.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Export failed');
+            }
+        } catch (e) {
+            alert('Export error');
+        }
+    }
+    
+    function clearChatHistory() {
+        if (!confirm("清除历史记录？")) return;
+        chatHistory = [];
+        localStorage.removeItem('chatHistory');
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = `
+            <div class="message bot">
+                <div class="bot-avatar">🤖</div>
+                <div class="message-content"><p>你好！我是智能文档助手。请上传文档开始分析，或直接提问。</p></div>
+            </div>`;
+    }
+</script>
+
+</body>
+</html>

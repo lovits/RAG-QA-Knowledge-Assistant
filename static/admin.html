@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .actions {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #message-box {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 User Management Dashboard</h1>
+        
+        <div class="actions">
+            <button class="btn-primary" onclick="openModal('add')">➕ Add User</button>
+            <button class="btn-primary" onclick="loadUsers()" style="margin-left: 10px;">🔄 Refresh List</button>
+        </div>
+
+        <div id="message-box"></div>
+
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Format</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Users will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal for Add/Edit User -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Add User</h2>
+            <form id="user-form" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="form-mode" value="add">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Leave blank to keep unchanged (Edit only)">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone">
+                </div>
+                <div class="form-group">
+                    <label for="format">Preferred Output Format</label>
+                    <select id="format">
+                        <option value="markdown">Markdown</option>
+                        <option value="text">Text</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/users`);
+                if (!response.ok) throw new Error('Failed to load user list');
+                const users = await response.json();
+                users.sort((a, b) => a.username.localeCompare(b.username));
+                renderTable(users);
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function renderTable(users) {
+            const tbody = document.querySelector('#user-table tbody');
+            tbody.innerHTML = '';
+            
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                const isLocked = user.account_locked_until && new Date(user.account_locked_until) > new Date();
+                
+                tr.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>${user.email || '-'}</td>
+                    <td>${user.phone || '-'}</td>
+                    <td>${user.preferred_output_format}</td>
+                    <td>${isLocked ? '<span style="color:red">🔒 Locked</span>' : '<span style="color:green">✅ Active</span>'}</td>
+                    <td>
+                        <button class="btn-warning" onclick="editUser('${user.username}')">✏️ Edit</button>
+                        <button class="btn-danger" onclick="deleteUser('${user.username}')">🗑️ Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openModal(mode, username = null) {
+            const modal = document.getElementById('userModal');
+            const title = document.getElementById('modal-title');
+            const formMode = document.getElementById('form-mode');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            modal.style.display = 'block';
+            formMode.value = mode;
+
+            if (mode === 'add') {
+                title.textContent = 'Add User';
+                usernameInput.value = '';
+                usernameInput.disabled = false;
+                passwordInput.required = true;
+                passwordInput.placeholder = 'Enter password';
+                document.getElementById('email').value = '';
+                document.getElementById('phone').value = '';
+                document.getElementById('format').value = 'markdown';
+            } else {
+                title.textContent = 'Edit User';
+                // Fetch user details first
+                fetch(`${API_BASE}/user/${username}`)
+                    .then(res => res.json())
+                    .then(user => {
+                        usernameInput.value = user.username;
+                        usernameInput.disabled = true; // Cannot change username
+                        passwordInput.required = false;
+                        passwordInput.placeholder = 'Leave blank to keep unchanged';
+                        document.getElementById('email').value = user.email || '';
+                        document.getElementById('phone').value = user.phone || '';
+                        document.getElementById('format').value = user.preferred_output_format || 'markdown';
+                    });
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const mode = document.getElementById('form-mode').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const format = document.getElementById('format').value;
+
+            const data = {
+                username,
+                email: email || null,
+                phone: phone || null,
+                preferred_output_format: format
+            };
+
+            if (password) {
+                data.password = password;
+            }
+
+            try {
+                let url, method;
+                if (mode === 'add') {
+                    url = `${API_BASE}/register`;
+                    method = 'POST';
+                    if (!password) throw new Error("Password cannot be empty");
+                } else {
+                    url = `${API_BASE}/user/${username}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Operation failed');
+                }
+
+                showMessage(mode === 'add' ? 'User added successfully' : 'User updated successfully', 'success');
+                closeModal();
+                loadUsers();
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        async function editUser(username) {
+            openModal('edit', username);
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone!`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/users/${username}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Delete failed');
+                
+                showMessage('User deleted', 'success');
+                loadUsers();
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('message-box');
+            box.textContent = text;
+            box.style.display = 'block';
+            box.style.backgroundColor = type === 'error' ? '#f8d7da' : '#d4edda';
+            box.style.color = type === 'error' ? '#721c24' : '#155724';
+            
+            setTimeout(() => {
+                box.style.display = 'none';
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('userModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // Initial load
+        loadUsers();
+    </script>
+</body>
+</html>
